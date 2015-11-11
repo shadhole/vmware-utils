@@ -1,0 +1,3 @@
+ESX utilities written in python leveraging the pyVmomi python API library from VMWARE.
+
+First functions - enable/disable alarms
