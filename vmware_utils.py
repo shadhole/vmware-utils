@@ -23,6 +23,10 @@ import atexit
 import argparse
 import getpass
 
+################################################
+# below lines are a hack for my lab environment
+# production environments with valid vCenter Certificates
+# do not need this code
 import requests
 requests.packages.urllib3.disable_warnings()
 
@@ -36,6 +40,8 @@ except AttributeError:
 else:
  # Handle target environment that doesn't support HTTPS verification
  ssl._create_default_https_context = _create_unverified_https_context
+# end hack
+#################################################
 
 from pyVim import connect
 from pyVmomi import vmodl
@@ -78,8 +84,17 @@ def get_args():
                    (args.host, args.user))
     return args
 
+# helper function to list basic info about all alarms in the vCenter instance
+def list_alarms(alarms):
 
-def get_connection():
+	for alarm in alarms:
+		print "Alarm object:" + alarm.alarminfo.alarm
+		print "Alarm name:" + alarm.alarminfo.name
+		print "Alarm entity" + alarm.alarminfo.entity
+		print "Alarm enabled?" + alarm.alarminfo.enabled
+	return
+
+def main():
     """
     Simple command-line program for listing the virtual machines on a system.
     """
@@ -94,7 +109,9 @@ def get_connection():
 
         atexit.register(connect.Disconnect, service_instance)
 
+
         print "\nHello World!\n"
+	"""
         print "If you got here, you authenticted into vCenter."
         print "The server is {}!".format(args.host)
         # NOTE (hartsock): only a successfully authenticated session has a
@@ -106,6 +123,14 @@ def get_connection():
         print "Download, learn and contribute back:"
         print "https://github.com/vmware/pyvmomi-community-samples"
         print "\n\n"
+	"""
+ 
+	alarm_manager = service_instance.content.alarmManager
+	alarms = None
+	alarms = alarm_manager.GetAlarm
+#	list_alarms(alarms)
+#	for alarm in alarms:
+	print alarms.val
 
     except vmodl.MethodFault as error:
         print "Caught vmodl fault : " + error.msg
@@ -113,4 +138,7 @@ def get_connection():
 
     return service_instance
 
+#start the program
+if __name__ == "__main__":
+    main()
 
