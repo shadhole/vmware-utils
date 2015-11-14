@@ -46,7 +46,6 @@ else:
 from pyVim import connect
 from pyVmomi import vmodl
 
-
 def get_args():
     """Get command line args from the user.
     """
@@ -124,13 +123,16 @@ def main():
         print "https://github.com/vmware/pyvmomi-community-samples"
         print "\n\n"
 	"""
- 
 	alarm_manager = service_instance.content.alarmManager
-	alarms = None
-	alarms = alarm_manager.GetAlarm
-#	list_alarms(alarms)
-#	for alarm in alarms:
-	print alarms.val
+	alarms = alarm_manager.GetAlarm()
+	for alarm in alarms:
+		if alarm.info.systemName == 'alarm.StorageConnectivityAlarm':
+			print alarm.info.enabled
+			spec = alarm.info
+			spec.enabled = True
+			alarm.ReconfigureAlarm(spec)
+			print alarm.info.enabled
+			break
 
     except vmodl.MethodFault as error:
         print "Caught vmodl fault : " + error.msg
