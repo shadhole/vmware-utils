@@ -1,6 +1,3 @@
-# VMware vSphere Python SDK
-# Copyright (c) 2008-2013 VMware, Inc. All Rights Reserved.
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,9 +11,28 @@
 # limitations under the License.
 
 """
-Python program with utility functions for virtual environments	
-	enable_alarm
-	disable_alarm
+Python program to enable/disable a given ESX alarm
+Parameters:
+	-s: IP address of vCenter to connect to
+	-u: vCenter user
+	-p: vCenter password
+	-o: vCenter secure port (optional. default is 443)
+	-n: ESX alarm object name (for example 'alarm.StorageConnectivityAlarm')
+	-e | -d: -e to enable the alarm; -d to disable the alarm
+
+Syntax example to disable an alarm:
+	set_alarm_state.py -s 1.1.1.1 -u admin -p password -n alarm.StorageConnectivityAlarm -d
+Syntax example to enable an alarm:
+	set_alarm_state.py -s 1.1.1.1 -u admin -p password -n alarm.StorageConnectivityAlarm -e
+
+Requirements:
+	python2.7
+	pyVmomi - python library for VMware SDK developed by VMware. Details for installation are
+	on github: https://github.com/vmware/pyvmomi
+
+This code is developed in a lab ESX environment with self-signed certificates. It requires a special hack
+that should NOT be used in production environments. Please remove/comment out the hack below when running
+with valid vCenter Certificates.
 """
 
 import atexit
@@ -74,6 +90,17 @@ def get_args():
                         required=False,
                         action='store',
                         help='Password to use when connecting to host')
+    parser.add_argument('-n', '--alarmname',
+			required=True,
+			action='store',
+			help='Alarm name to enable/disable')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-e', '--enabled',
+			action='store_true',
+			help='Enable an alarm')
+    group.add_argument('-d', '--disabled',
+			action='store_false',
+			help='Disable an alarm')
 
     args = parser.parse_args()
 
@@ -83,21 +110,7 @@ def get_args():
                    (args.host, args.user))
     return args
 
-# helper function to list basic info about all alarms in the vCenter instance
-def list_alarms(alarms):
-
-	for alarm in alarms:
-		print "Alarm object:" + alarm.alarminfo.alarm
-		print "Alarm name:" + alarm.alarminfo.name
-		print "Alarm entity" + alarm.alarminfo.entity
-		print "Alarm enabled?" + alarm.alarminfo.enabled
-	return
-
 def main():
-    """
-    Simple command-line program for listing the virtual machines on a system.
-    """
-
     args = get_args()
 
     try:
@@ -109,27 +122,17 @@ def main():
         atexit.register(connect.Disconnect, service_instance)
 
 
-        print "\nHello World!\n"
-	"""
-        print "If you got here, you authenticted into vCenter."
-        print "The server is {}!".format(args.host)
-        # NOTE (hartsock): only a successfully authenticated session has a
-        # session key aka session id.
-        session_id = service_instance.content.sessionManager.currentSession.key
-        print "current session id: {}".format(session_id)
-        print "Well done!"
-        print "\n"
-        print "Download, learn and contribute back:"
-        print "https://github.com/vmware/pyvmomi-community-samples"
-        print "\n\n"
-	"""
+	# Set the enabled state for the given alarm
 	alarm_manager = service_instance.content.alarmManager
 	alarms = alarm_manager.GetAlarm()
 	for alarm in alarms:
-		if alarm.info.systemName == 'alarm.StorageConnectivityAlarm':
+		if alarm.info.systemName == args.alarmname:			
 			print alarm.info.enabled
 			spec = alarm.info
-			spec.enabled = True
+			if args.enabled:
+				spec.enabled = args.enabled
+			if not args.disabled:
+				spec.enabled = args.disabled
 			alarm.ReconfigureAlarm(spec)
 			print alarm.info.enabled
 			break
